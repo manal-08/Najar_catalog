@@ -14,7 +14,7 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط إذا لم يكن مسجلاً) -->
+    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط) -->
     <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20">
             <div class="w-16 h-16 bg-amber-100 text-amber-900 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow">
@@ -46,14 +46,15 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- زر المشاركة (يظهر للجميع ليتمكن شقيقك من إرسال رابط الزوار) -->
-                <button onclick="shareApp()" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+                <!-- زر المشاركة (مخفي افتراضياً ويظهر للأدمن فقط) -->
+                <button id="share-btn" onclick="shareApp()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold items-center gap-1.5 shadow transition">
                     <i class="fa-solid fa-share-nodes"></i> مشاركة الكتالوج
                 </button>
-                <!-- زر الخروج يظهر للأدمن فقط -->
-                <button id="logout-btn" onclick="logoutAdmin()" class="hidden bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition" title="قفل التطبيق">
+                <!-- زر الخروج (يظهر للأدمن فقط) -->
+                <button id="logout-btn" onclick="logoutAdmin()" class="hidden bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold items-center gap-1 shadow transition" title="قفل التطبيق">
                     <i class="fa-solid fa-right-from-bracket"></i> خروج
                 </button>
+                <!-- زر العودة للأقسام -->
                 <button id="back-btn" onclick="goHome()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-arrow-right"></i> الأقسام
                 </button>
@@ -71,7 +72,6 @@
         <section id="view-categories" class="hidden">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-extrabold text-amber-950 border-r-4 border-amber-800 pr-3">اختر نوع التصميم</h2>
-                <!-- زر إضافة نوع (يظهر للأدمن المسجل دخول فقط) -->
                 <button id="add-cat-btn" onclick="openModal('modal-add-category')" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition">
                     <i class="fa-solid fa-plus"></i> إضافة نوع جديد
                 </button>
@@ -85,7 +85,6 @@
                     <span class="text-xs text-amber-700 font-bold">قسم</span>
                     <h2 id="current-category-title" class="text-2xl font-extrabold text-amber-950"></h2>
                 </div>
-                <!-- زر إضافة تصميم (يظهر للأدمن فقط) -->
                 <button id="add-prod-btn" onclick="openModal('modal-add-product')" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition">
                     <i class="fa-solid fa-camera"></i> إضافة تصميم
                 </button>
@@ -169,7 +168,7 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const WHATSAPP_NUMBER = "+212626322673"; 
-        const ADMIN_SECRET_PIN = "0107"; 
+        const ADMIN_SECRET_PIN = "0701"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDoez83NcsLSFH9ZwHhX3BlySch2GiKMhI",
@@ -187,24 +186,28 @@
         let currentCategoryId = null;
         let currentCategoryName = "";
 
-        // التحقق مما إذا كان الرابط مخصصاً للزوار عبر (?view=client)
         const urlParams = new URLSearchParams(window.location.search);
         const isClientView = urlParams.get('view') === 'client';
-
         const isAuth = localStorage.getItem("najar_authenticated") === "true";
 
-        // منطق إظهار الشاشة أو لوحة التحكم
+        // إظهار أزرار الأدمن (مشاركة الكتالوج + خروج) للأدمن فقط
+        function enableAdminHeader() {
+            const shareBtn = document.getElementById('share-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            shareBtn.classList.remove('hidden');
+            shareBtn.classList.add('flex');
+            logoutBtn.classList.remove('hidden');
+            logoutBtn.classList.add('flex');
+        }
+
         if (isClientView) {
-            // إذا كان زائراً، نخفي شاشة الكود ونترك العرض فقط
             document.getElementById('auth-screen').classList.add('hidden');
             loadCategories(false);
         } else if (isAuth) {
-            // إذا كان شقيقك مسجلاً دخوله مسبقاً
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('logout-btn').classList.remove('hidden');
+            enableAdminHeader();
             loadCategories(true);
         } else {
-            // إظهار شاشة طلب الكود السري لشقيقك
             document.getElementById('auth-screen').classList.remove('hidden');
         }
 
@@ -213,7 +216,7 @@
             if (enteredPin === ADMIN_SECRET_PIN) {
                 localStorage.setItem("najar_authenticated", "true");
                 document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('logout-btn').classList.remove('hidden');
+                enableAdminHeader();
                 loadCategories(true);
             } else {
                 alert("الكود السري خاطئ! حاول مجدداً.");
@@ -228,13 +231,17 @@
             }
         };
 
-        window.openModal = (id) => document.getElementById(id).classList.add('flex') & document.getElementById(id).classList.remove('hidden');
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden') & document.getElementById(id).classList.remove('flex');
+        window.openModal = (id) => {
+            document.getElementById(id).classList.add('flex');
+            document.getElementById(id).classList.remove('hidden');
+        };
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        };
 
-        // زر المشاركة ينسخ رابط الزوار المخصص (?view=client) لكي لا يظهر لهم الكود السري أبداً
         window.shareApp = async () => {
             const clientUrl = window.location.origin + window.location.pathname + "?view=client";
-            
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(clientUrl);
@@ -359,7 +366,7 @@
                 } else {
                     snapshot.forEach((docSnap) => {
                         const prod = docSnap.data();
-               const prodId = docSnap.id;
+                        const prodId = docSnap.id;
                         const mainImg = (prod.images && prod.images.length > 0) ? prod.images[0] : '';
                         const imgCount = prod.images ? prod.images.length : 1;
 

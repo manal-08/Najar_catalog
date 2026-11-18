@@ -166,7 +166,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const WHATSAPP_NUMBER = "+212626322673"; 
+        const WHATSAPP_NUMBER = "+212626322673"; // رقم واتساب شقيقك (اكتبي رقمه الصحيح هنا متبوعاً برمز الدولة بدون +، مثلاً: 2126xxxxxxxx)
         const ADMIN_SECRET_PIN = "0701"; 
 
         const firebaseConfig = {
@@ -367,7 +367,8 @@
 
                         const card = document.createElement('div');
                         card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
-                     const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
+                        
+                        const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
 
                         card.innerHTML = `
                             <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer relative">
@@ -483,7 +484,10 @@
                 gallery.innerHTML += `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="w-full rounded-xl shadow-sm object-cover hover:opacity-95"></a>`;
             });
 
-            const message = `السلام عليكم، أعجبني هذا التصميم في كتالوج StyleNajar وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}`;
+            // أخذ الصورة الأولى للموديل وإرسالها في رسالة الواتساب لشقيقك
+            const firstImg = prod.images && prod.images[0] ? prod.images[0] : '';
+            const message = `السلام عليكم، أعجبني هذا التصميم وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}\n- الثمن: ${prod.price || 'حسب المقاس'}\n- رابط صورة الموديل:\n${firstImg}`;
+            
             document.getElementById('whatsapp-btn').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
             openModal('modal-product-details');

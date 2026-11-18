@@ -14,8 +14,8 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- شاشة إدخال الكود السري لشقيقك -->
-    <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4">
+    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط إذا لم يكن مسجلاً) -->
+    <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20">
             <div class="w-16 h-16 bg-amber-100 text-amber-900 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow">
                 <i class="fa-solid fa-lock"></i>
@@ -46,10 +46,12 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- زر المشاركة (يظهر للجميع ليتمكن شقيقك من إرسال رابط الزوار) -->
                 <button onclick="shareApp()" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
                     <i class="fa-solid fa-share-nodes"></i> مشاركة الكتالوج
                 </button>
-                <button onclick="logoutAdmin()" class="bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition" title="قفل التطبيق">
+                <!-- زر الخروج يظهر للأدمن فقط -->
+                <button id="logout-btn" onclick="logoutAdmin()" class="hidden bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition" title="قفل التطبيق">
                     <i class="fa-solid fa-right-from-bracket"></i> خروج
                 </button>
                 <button id="back-btn" onclick="goHome()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
@@ -69,7 +71,8 @@
         <section id="view-categories" class="hidden">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-extrabold text-amber-950 border-r-4 border-amber-800 pr-3">اختر نوع التصميم</h2>
-                <button onclick="openModal('modal-add-category')" class="bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md flex items-center gap-2 transition">
+                <!-- زر إضافة نوع (يظهر للأدمن المسجل دخول فقط) -->
+                <button id="add-cat-btn" onclick="openModal('modal-add-category')" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition">
                     <i class="fa-solid fa-plus"></i> إضافة نوع جديد
                 </button>
             </div>
@@ -82,7 +85,8 @@
                     <span class="text-xs text-amber-700 font-bold">قسم</span>
                     <h2 id="current-category-title" class="text-2xl font-extrabold text-amber-950"></h2>
                 </div>
-                <button onclick="openModal('modal-add-product')" class="bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md flex items-center gap-2 transition">
+                <!-- زر إضافة تصميم (يظهر للأدمن فقط) -->
+                <button id="add-prod-btn" onclick="openModal('modal-add-product')" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition">
                     <i class="fa-solid fa-camera"></i> إضافة تصميم
                 </button>
             </div>
@@ -148,7 +152,7 @@
                 </div>
                 <p id="detail-desc" class="text-gray-600 text-sm mb-5"></p>
                 
-                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
+                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
                     <i class="fa-brands fa-whatsapp text-2xl"></i> استفسر عن هذا التصميم عبر واتساب
                 </a>
             </div>
@@ -183,10 +187,25 @@
         let currentCategoryId = null;
         let currentCategoryName = "";
 
+        // التحقق مما إذا كان الرابط مخصصاً للزوار عبر (?view=client)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isClientView = urlParams.get('view') === 'client';
+
         const isAuth = localStorage.getItem("najar_authenticated") === "true";
-        if (isAuth) {
+
+        // منطق إظهار الشاشة أو لوحة التحكم
+        if (isClientView) {
+            // إذا كان زائراً، نخفي شاشة الكود ونترك العرض فقط
             document.getElementById('auth-screen').classList.add('hidden');
-            loadCategories();
+            loadCategories(false);
+        } else if (isAuth) {
+            // إذا كان شقيقك مسجلاً دخوله مسبقاً
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('logout-btn').classList.remove('hidden');
+            loadCategories(true);
+        } else {
+            // إظهار شاشة طلب الكود السري لشقيقك
+            document.getElementById('auth-screen').classList.remove('hidden');
         }
 
         window.verifyPin = () => {
@@ -194,7 +213,8 @@
             if (enteredPin === ADMIN_SECRET_PIN) {
                 localStorage.setItem("najar_authenticated", "true");
                 document.getElementById('auth-screen').classList.add('hidden');
-                loadCategories();
+                document.getElementById('logout-btn').classList.remove('hidden');
+                loadCategories(true);
             } else {
                 alert("الكود السري خاطئ! حاول مجدداً.");
                 document.getElementById('secret-pin-input').value = '';
@@ -211,18 +231,17 @@
         window.openModal = (id) => document.getElementById(id).classList.add('flex') & document.getElementById(id).classList.remove('hidden');
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden') & document.getElementById(id).classList.remove('flex');
 
-        // دالة مشاركة الرابط النظيف (بدون ظهور شاشة الكود السري للزوار، وبدون أزرار الإدارة)
+        // زر المشاركة ينسخ رابط الزوار المخصص (?view=client) لكي لا يظهر لهم الكود السري أبداً
         window.shareApp = async () => {
-            // سنقوم بنسخ الرابط الأساسي النظيف
-            const cleanUrl = window.location.origin + window.location.pathname;
+            const clientUrl = window.location.origin + window.location.pathname + "?view=client";
             
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(cleanUrl);
-                    alert("تم نسخ رابط الزوار بنجاح! الرابط جاهز للإرسال للزبائن.");
+                    await navigator.clipboard.writeText(clientUrl);
+                    alert("تم نسخ رابط الزوار بنجاح! جاهز للإرسال للزبائن عبر واتساب.");
                 } else {
                     const textArea = document.createElement("textarea");
-                    textArea.value = cleanUrl;
+                    textArea.value = clientUrl;
                     document.body.appendChild(textArea);
                     textArea.select();
                     document.execCommand("copy");
@@ -230,15 +249,20 @@
                     alert("تم نسخ رابط الزوار بنجاح!");
                 }
             } catch (err) {
-                alert("رابط الزوار هو: " + cleanUrl);
+                alert("رابط الزوار هو: " + clientUrl);
             }
         };
 
-        async function loadCategories() {
+        async function loadCategories(isAdmin) {
             document.getElementById('loader').classList.remove('hidden');
             document.getElementById('view-categories').classList.add('hidden');
             document.getElementById('view-products').classList.add('hidden');
             document.getElementById('back-btn').classList.add('hidden');
+
+            if (isAdmin) {
+                document.getElementById('add-cat-btn').classList.remove('hidden');
+                document.getElementById('add-cat-btn').classList.add('flex');
+            }
 
             const listEl = document.getElementById('categories-list');
             listEl.innerHTML = '';
@@ -248,7 +272,7 @@
                 const snapshot = await getDocs(q);
 
                 if (snapshot.empty) {
-                    listEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">لا توجد أقسام مضافة بعد. اضغط على زر "إضافة نوع جديد" في الأعلى.</p>`;
+                    listEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">لا توجد أقسام مضافة بعد.</p>`;
                 } else {
                     snapshot.forEach((docSnap) => {
                         const cat = docSnap.data();
@@ -257,14 +281,13 @@
                         const card = document.createElement('div');
                         card.className = "bg-white rounded-2xl shadow-sm hover:shadow-md border border-amber-100 p-5 text-center cursor-pointer transition relative group flex flex-col items-center justify-center min-h-[140px]";
                         card.innerHTML = `
-                            <div onclick="openCategory('${catId}', '${cat.name}')" class="w-full h-full flex flex-col items-center justify-center">
+                            <div onclick="openCategory('${catId}', '${cat.name}', ${isAdmin})" class="w-full h-full flex flex-col items-center justify-center">
                                 <div class="w-14 h-14 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-2xl mb-3 group-hover:bg-amber-800 group-hover:text-white transition">
                                     <i class="fa-solid fa-layer-group"></i>
                                 </div>
                                 <h3 class="font-extrabold text-lg text-gray-900">${cat.name}</h3>
                             </div>
-                            <!-- زر الحذف يظهر لشقيقك فقط لأنه مسجل دخوله -->
-                            <button onclick="deleteCategory('${catId}')" class="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1.5 text-xs" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>
+                            ${isAdmin ? `<button onclick="deleteCategory('${catId}')" class="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1.5 text-xs" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>` : ''}
                         `;
                         listEl.appendChild(card);
                     });
@@ -293,7 +316,7 @@
                 });
                 nameInput.value = '';
                 closeModal('modal-add-category');
-                loadCategories();
+                loadCategories(true);
             } catch (e) {
                 alert("خطأ أثناء الحفظ: " + e.message);
             } finally {
@@ -305,10 +328,10 @@
         window.deleteCategory = async (catId) => {
             if (!confirm("هل أنت متأكد من حذف هذا القسم؟")) return;
             await deleteDoc(doc(db, "categories", catId));
-            loadCategories();
+            loadCategories(true);
         };
 
-        window.openCategory = async (catId, catName) => {
+        window.openCategory = async (catId, catName, isAdmin) => {
             currentCategoryId = catId;
             currentCategoryName = catName;
 
@@ -316,6 +339,13 @@
             document.getElementById('loader').classList.remove('hidden');
             document.getElementById('current-category-title').innerText = catName;
             document.getElementById('back-btn').classList.remove('hidden');
+
+            if (isAdmin) {
+                document.getElementById('add-prod-btn').classList.remove('hidden');
+                document.getElementById('add-prod-btn').classList.add('flex');
+            } else {
+                document.getElementById('add-prod-btn').classList.add('hidden');
+            }
 
             const prodListEl = document.getElementById('products-list');
             prodListEl.innerHTML = '';
@@ -329,7 +359,7 @@
                 } else {
                     snapshot.forEach((docSnap) => {
                         const prod = docSnap.data();
-                        const prodId = docSnap.id;
+               const prodId = docSnap.id;
                         const mainImg = (prod.images && prod.images.length > 0) ? prod.images[0] : '';
                         const imgCount = prod.images ? prod.images.length : 1;
 
@@ -352,7 +382,7 @@
                                     <button onclick="showProductDetails('${prodDataEncoded}')" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-2 rounded-xl text-sm transition">
                                         التفاصيل والصور
                                     </button>
-                                    <button onclick="deleteProduct('${prodId}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl text-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                                    ${isAdmin ? `<button onclick="deleteProduct('${prodId}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl text-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -425,7 +455,7 @@
                 document.getElementById('product-desc').value = '';
 
                 closeModal('modal-add-product');
-                openCategory(currentCategoryId, currentCategoryName);
+                openCategory(currentCategoryId, currentCategoryName, true);
             } catch (e) {
                 alert("حدث خطأ أثناء الحفظ: " + e.message);
             } finally {
@@ -437,12 +467,11 @@
         window.deleteProduct = async (prodId) => {
             if (!confirm("هل تريد حذف هذا التصميم نهائياً؟")) return;
             await deleteDoc(doc(db, "products", prodId));
-            openCategory(currentCategoryId, currentCategoryName);
+            openCategory(currentCategoryId, currentCategoryName, true);
         };
 
         window.showProductDetails = (encodedData) => {
             const prod = JSON.parse(decodeURIComponent(encodedData));
-            document.getElementById('detail-title').innerText.innerText = prod.title;
             document.getElementById('detail-title').innerText = prod.title;
             document.getElementById('detail-price').innerText = prod.price ? prod.price : 'الثمن: حسب المقاس والطلب';
             document.getElementById('detail-desc').innerText = prod.description || '';
@@ -459,7 +488,7 @@
             openModal('modal-product-details');
         };
 
-        window.goHome = () => loadCategories();
+        window.goHome = () => loadCategories(!isClientView && isAuth);
     </script>
 </body>
 </html>

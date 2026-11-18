@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleNajar - كتالوج أعمال النجارة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #faf8f5; }
+        .wood-gradient { background: linear-gradient(135deg, #5c3a21 0%, #8c5832 100%); }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- شاشة إدخال الكود السري -->
+    <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20">
+            <div class="w-16 h-16 bg-amber-100 text-amber-900 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-amber-950 mb-2">StyleNajar</h2>
+            <p class="text-gray-500 text-xs mb-6">المرجو إدخال الكود السري للولوج لوحة التحكم</p>
+            
+            <input type="password" id="secret-pin-input" placeholder="أدخل الكود السري" class="w-full border-2 border-amber-200 rounded-2xl p-3.5 mb-4 text-center text-xl tracking-widest focus:outline-none focus:border-amber-800">
+            
+            <button onclick="verifyPin()" class="w-full wood-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg hover:opacity-95 transition text-base">
+                دخول للورشة
+            </button>
+            <p class="text-[10px] text-gray-400 mt-4">هذا التطبيق خاص بالنجار ولا يسمح لغيره بالدخول</p>
+        </div>
+    </div>
+
+    <!-- الهيدر -->
+    <header class="wood-gradient text-white shadow-lg py-4 px-4 sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
+                <div class="w-10 h-10 bg-amber-100 text-amber-900 rounded-xl flex items-center justify-center text-xl font-extrabold shadow">
+                    <i class="fa-solid fa-hammer"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-wide">StyleNajar</h1>
+                    <p class="text-amber-200 text-xs">إبداع الخشب والتصميم العصري</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="shareApp()" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+                    <i class="fa-solid fa-share-nodes"></i> مشاركة الكتالوج
+                </button>
+                <button onclick="logoutAdmin()" class="bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow transition" title="قفل التطبيق">
+                    <i class="fa-solid fa-right-from-bracket"></i> خروج
+                </button>
+                <button id="back-btn" onclick="goHome()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-arrow-right"></i> الأقسام
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-5xl mx-auto w-full p-4 my-4 flex-1">
+        <div id="loader" class="text-center py-12">
+            <i class="fa-solid fa-spinner fa-spin text-4xl text-amber-800"></i>
+            <p class="mt-2 text-gray-600 font-semibold">جاري تحميل المعرض...</p>
+        </div>
+
+        <section id="view-categories" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-extrabold text-amber-950 border-r-4 border-amber-800 pr-3">اختر نوع التصميم</h2>
+                <button onclick="openModal('modal-add-category')" class="bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md flex items-center gap-2 transition">
+                    <i class="fa-solid fa-plus"></i> إضافة نوع جديد
+                </button>
+            </div>
+            <div id="categories-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+        </section>
+
+        <section id="view-products" class="hidden">
+            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-amber-100">
+                <div>
+                    <span class="text-xs text-amber-700 font-bold">قسم</span>
+                    <h2 id="current-category-title" class="text-2xl font-extrabold text-amber-950"></h2>
+                </div>
+                <button onclick="openModal('modal-add-product')" class="bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md flex items-center gap-2 transition">
+                    <i class="fa-solid fa-camera"></i> إضافة تصميم
+                </button>
+            </div>
+            <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+        </section>
+    </main>
+
+    <!-- نافذة إضافة نوع جديد -->
+    <div id="modal-add-category" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-extrabold text-amber-950">إضافة نوع جديد (قسم)</h3>
+                <button onclick="closeModal('modal-add-category')" class="text-gray-400 hover:text-gray-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="new-category-name" placeholder="مثال: أبواب، مطابخ، غرف نوم..." class="w-full border border-gray-300 rounded-xl p-3 mb-4 focus:outline-none focus:border-amber-800">
+            <button id="save-cat-btn" onclick="saveCategory()" class="w-full wood-gradient text-white font-bold py-3 rounded-xl shadow hover:opacity-95 transition">
+                حفظ وإضافة الزر
+            </button>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة تصميم -->
+    <div id="modal-add-product" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-extrabold text-amber-950">إضافة تصميم جديد</h3>
+                <button onclick="closeModal('modal-add-product')" class="text-gray-400 hover:text-gray-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <label class="block text-sm font-bold mb-1 text-gray-700">صور التصميم (صورة أو أكثر) *</label>
+            <input type="file" id="product-images" accept="image/*" multiple class="w-full border border-dashed border-amber-600 bg-amber-50/50 rounded-xl p-3 mb-3 text-sm">
+
+            <label class="block text-sm font-bold mb-1 text-gray-700">اسم أو رقم الموديل *</label>
+            <input type="text" id="product-title" placeholder="مثال: باب خشب موديل 1" class="w-full border border-gray-300 rounded-xl p-3 mb-3 text-sm focus:outline-none focus:border-amber-800">
+
+            <label class="block text-sm font-bold mb-1 text-gray-700">الثمن بالدرهم (اختياري)</label>
+            <input type="text" id="product-price" placeholder="مثال: 2500 درهم" class="w-full border border-gray-300 rounded-xl p-3 mb-3 text-sm focus:outline-none focus:border-amber-800">
+
+            <label class="block text-sm font-bold mb-1 text-gray-700">تفاصيل إضافية (اختياري)</label>
+            <textarea id="product-desc" rows="2" placeholder="نوع الخشب، المقاسات..." class="w-full border border-gray-300 rounded-xl p-3 mb-4 text-sm focus:outline-none focus:border-amber-800"></textarea>
+
+            <button id="save-prod-btn" onclick="saveProduct()" class="w-full wood-gradient text-white font-bold py-3 rounded-xl shadow hover:opacity-95 transition">
+                ضغط الصور وحفظ التصميم
+            </button>
+        </div>
+    </div>
+
+    <!-- نافذة عرض التفاصيل والصور للزائر + واتساب -->
+    <div id="modal-product-details" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-3 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl my-6">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 id="detail-title" class="text-lg font-extrabold text-amber-950"></h3>
+                <button onclick="closeModal('modal-product-details')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div id="detail-gallery" class="p-4 bg-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto"></div>
+
+            <div class="p-5">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="detail-price" class="text-xl font-extrabold text-amber-900"></span>
+                </div>
+                <p id="detail-desc" class="text-gray-600 text-sm mb-5"></p>
+                
+                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
+                    <i class="fa-brands fa-whatsapp text-2xl"></i> استفسر عن هذا التصميم عبر واتساب
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-stone-900 text-stone-400 text-center py-5 mt-12 text-xs">
+        <p>StyleNajar © 2026 - جميع الحقوق محفوظة</p>
+    </footer>
+
+    <!-- ربط Firebase والمنطق البرمجي -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const WHATSAPP_NUMBER = "+212626322673"; 
+        const ADMIN_SECRET_PIN = "0107"; 
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDoez83NcsLSFH9ZwHhX3BlySch2GiKMhI",
+            authDomain: "najar-catalog.firebaseapp.com",
+            projectId: "najar-catalog",
+            storageBucket: "najar-catalog.firebasestorage.app",
+            messagingSenderId: "523626252305",
+            appId: "1:523626252305:web:a8cbd2423d60d1d70ac9b0",
+            measurementId: "G-11G6771JN6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentCategoryId = null;
+        let currentCategoryName = "";
+
+        const isAuth = localStorage.getItem("najar_authenticated") === "true";
+        if (isAuth) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            loadCategories();
+        }
+
+        window.verifyPin = () => {
+            const enteredPin = document.getElementById('secret-pin-input').value.trim();
+            if (enteredPin === ADMIN_SECRET_PIN) {
+                localStorage.setItem("najar_authenticated", "true");
+                document.getElementById('auth-screen').classList.add('hidden');
+                loadCategories();
+            } else {
+                alert("الكود السري خاطئ! حاول مجدداً.");
+                document.getElementById('secret-pin-input').value = '';
+            }
+        };
+
+        window.logoutAdmin = () => {
+            if (confirm("هل تريد قفل التطبيق؟")) {
+                localStorage.removeItem("najar_authenticated");
+                location.reload();
+            }
+        };
+
+        window.openModal = (id) => document.getElementById(id).classList.add('flex') & document.getElementById(id).classList.remove('hidden');
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden') & document.getElementById(id).classList.remove('flex');
+
+        // دالة مشاركة آمنة لا تسبب انهيار الصفحة
+        window.shareApp = async () => {
+            const cleanUrl = window.location.origin + window.location.pathname;
+            
+            // النسخ المباشر للحافظة لضمان عدم حدوث انهيار في بعض المتصفحات المحمولة
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(cleanUrl);
+                    alert("تم نسخ رابط الكتالوج بنجاح! يمكنك الآن لصقه وإرساله للزبائن عبر واتساب.");
+                } else {
+                    // طريقة بديلة
+                    const textArea = document.createElement("textarea");
+                    textArea.value = cleanUrl;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                    alert("تم نسخ رابط الكتالوج بنجاح!");
+                }
+            } catch (err) {
+                alert("رابط الكتالوج هو: " + cleanUrl);
+            }
+        };
+
+        async function loadCategories() {
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('view-categories').classList.add('hidden');
+            document.getElementById('view-products').classList.add('hidden');
+            document.getElementById('back-btn').classList.add('hidden');
+
+            const listEl = document.getElementById('categories-list');
+            listEl.innerHTML = '';
+
+            try {
+                const q = query(collection(db, "categories"), orderBy("createdAt", "asc"));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    listEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">لا توجد أقسام مضافة بعد. اضغط على زر "إضافة نوع جديد" في الأعلى.</p>`;
+                } else {
+                    snapshot.forEach((docSnap) => {
+                        const cat = docSnap.data();
+                        const catId = docSnap.id;
+
+                        const card = document.createElement('div');
+                        card.className = "bg-white rounded-2xl shadow-sm hover:shadow-md border border-amber-100 p-5 text-center cursor-pointer transition relative group flex flex-col items-center justify-center min-h-[140px]";
+                        card.innerHTML = `
+                            <div onclick="openCategory('${catId}', '${cat.name}')" class="w-full h-full flex flex-col items-center justify-center">
+                                <div class="w-14 h-14 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-2xl mb-3 group-hover:bg-amber-800 group-hover:text-white transition">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                </div>
+                                <h3 class="font-extrabold text-lg text-gray-900">${cat.name}</h3>
+                            </div>
+                            <button onclick="deleteCategory('${catId}')" class="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1.5 text-xs" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>
+                        `;
+                        listEl.appendChild(card);
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('view-categories').classList.remove('hidden');
+        }
+
+        window.saveCategory = async () => {
+            const nameInput = document.getElementById('new-category-name');
+            const name = nameInput.value.trim();
+            if (!name) return alert("يرجى كتابة اسم النوع أولاً!");
+
+            const btn = document.getElementById('save-cat-btn');
+            btn.disabled = true;
+            btn.innerText = "جاري الحفظ...";
+
+            try {
+                await addDoc(collection(db, "categories"), {
+                    name: name,
+                    createdAt: serverTimestamp()
+                });
+                nameInput.value = '';
+                closeModal('modal-add-category');
+                loadCategories();
+            } catch (e) {
+                alert("خطأ أثناء الحفظ: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "حفظ وإضافة الزر";
+            }
+        };
+
+        window.deleteCategory = async (catId) => {
+            if (!confirm("هل أنت متأكد من حذف هذا القسم؟")) return;
+            await deleteDoc(doc(db, "categories", catId));
+            loadCategories();
+        };
+
+        window.openCategory = async (catId, catName) => {
+            currentCategoryId = catId;
+            currentCategoryName = catName;
+
+            document.getElementById('view-categories').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('current-category-title').innerText = catName;
+            document.getElementById('back-btn').classList.remove('hidden');
+
+            const prodListEl = document.getElementById('products-list');
+            prodListEl.innerHTML = '';
+
+            try {
+                const q = query(collection(db, "products"), where("categoryId", "==", catId));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    prodListEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">لا توجد تصاميم في هذا القسم حالياً.</p>`;
+                } else {
+                    snapshot.forEach((docSnap) => {
+                        const prod = docSnap.data();
+                        const prodId = docSnap.id;
+                        const mainImg = (prod.images && prod.images.length > 0) ? prod.images[0] : '';
+                        const imgCount = prod.images ? prod.images.length : 1;
+
+                        const card = document.createElement('div');
+                        card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
+                        
+                        const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
+
+                        card.innerHTML = `
+                            <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer relative">
+                                <img src="${mainImg}" class="h-56 w-full object-cover">
+                                ${imgCount > 1 ? `<span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2.5 py-1 rounded-lg"><i class="fa-regular fa-images ml-1"></i> +${imgCount - 1} صور</span>` : ''}
+                            </div>
+                            <div class="p-4 flex-1 flex flex-col justify-between">
+                                <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer">
+                                    <h3 class="font-extrabold text-lg text-gray-900">${prod.title}</h3>
+                                    <p class="text-amber-900 font-bold text-base mt-1">${prod.price ? prod.price : 'الثمن حسب المقاس'}</p>
+                                </div>
+                                 <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                                    <button onclick="showProductDetails('${prodDataEncoded}')" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-2 rounded-xl text-sm transition">
+                                        التفاصيل والصور
+                                    </button>
+                                    <button onclick="deleteProduct('${prodId}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl text-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                        prodListEl.appendChild(card);
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('view-products').classList.remove('hidden');
+        };
+
+        const compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+                        canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
+        };
+
+        window.saveProduct = async () => {
+            const filesInput = document.getElementById('product-images');
+            const title = document.getElementById('product-title').value.trim();
+            const price = document.getElementById('product-price').value.trim();
+            const desc = document.getElementById('product-desc').value.trim();
+
+            if (filesInput.files.length === 0 || !title) {
+                return alert("يرجى اختيار صورة واحدة على الأقل وكتابة اسم التصميم!");
+            }
+
+            const btn = document.getElementById('save-prod-btn');
+            btn.disabled = true;
+            btn.innerText = "جاري ضغط الصور وحفظها...";
+
+            try {
+                const imageUrls = [];
+                for (let i = 0; i < filesInput.files.length; i++) {
+                    const compressedBase64 = await compressImage(filesInput.files[i]);
+                    imageUrls.push(compressedBase64);
+                }
+
+                await addDoc(collection(db, "products"), {
+                    categoryId: currentCategoryId,
+                    categoryName: currentCategoryName,
+                    title: title,
+                    price: price,
+                    description: desc,
+                    images: imageUrls,
+                    createdAt: serverTimestamp()
+                });
+
+                document.getElementById('product-images').value = '';
+                document.getElementById('product-title').value = '';
+                document.getElementById('product-price').value = '';
+                document.getElementById('product-desc').value = '';
+
+                closeModal('modal-add-product');
+                openCategory(currentCategoryId, currentCategoryName);
+            } catch (e) {
+                alert("حدث خطأ أثناء الحفظ: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "ضغط الصور وحفظ التصميم";
+            }
+        };
+
+        window.deleteProduct = async (prodId) => {
+            if (!confirm("هل تريد حذف هذا التصميم نهائياً؟")) return;
+            await deleteDoc(doc(db, "products", prodId));
+            openCategory(currentCategoryId, currentCategoryName);
+        };
+
+        window.showProductDetails = (encodedData) => {
+            const prod = JSON.parse(decodeURIComponent(encodedData));
+            document.getElementById('detail-title').innerText = prod.title;
+            document.getElementById('detail-price').innerText = prod.price ? prod.price : 'الثمن: حسب المقاس والطلب';
+            document.getElementById('detail-desc').innerText = prod.description || '';
+
+            const gallery = document.getElementById('detail-gallery');
+            gallery.innerHTML = '';
+            (prod.images || []).forEach(imgUrl => {
+                gallery.innerHTML += `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="w-full rounded-xl shadow-sm object-cover hover:opacity-95"></a>`;
+            });
+
+            const message = `السلام عليكم، أعجبني هذا التصميم في كتالوج StyleNajar وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}`;
+            document.getElementById('whatsapp-btn').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+            openModal('modal-product-details');
+        };
+
+        window.goHome = () => loadCategories();
+    </script>
+</body>
+</html>

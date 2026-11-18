@@ -14,20 +14,23 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط) -->
+    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط مع زر الخروج فيها) -->
     <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20">
-            <div class="w-16 h-16 bg-amber-100 text-amber-900 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <h2 class="text-2xl font-extrabold text-amber-950 mb-2">StyleNajar</h2>
+        <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20 relative">
+            <h2 class="text-2xl font-extrabold text-amber-950 mb-1">StyleNajar</h2>
             <p class="text-gray-500 text-xs mb-6">المرجو إدخال الكود السري للولوج لوحة التحكم</p>
             
             <input type="password" id="secret-pin-input" placeholder="أدخل الكود السري" class="w-full border-2 border-amber-200 rounded-2xl p-3.5 mb-4 text-center text-xl tracking-widest focus:outline-none focus:border-amber-800">
             
-            <button onclick="verifyPin()" class="w-full wood-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg hover:opacity-95 transition text-base">
+            <button onclick="verifyPin()" class="w-full wood-gradient text-white font-bold py-3.5 rounded-2xl shadow-lg hover:opacity-95 transition text-base mb-3">
                 دخول للورشة
             </button>
+            
+            <!-- زر الخروج خاص بشقيقك في الشاشة الأولى فقط -->
+            <button onclick="logoutAdmin()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-right-from-bracket"></i> قفل التطبيق وخروج
+            </button>
+
             <p class="text-[10px] text-gray-400 mt-4">هذا التطبيق خاص بالنجار ولا يسمح لغيره بالدخول</p>
         </div>
     </div>
@@ -46,13 +49,9 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- زر المشاركة (مخفي افتراضياً ويظهر للأدمن فقط) -->
+                <!-- زر المشاركة (يظهر للأدمن فقط في الهيدر) -->
                 <button id="share-btn" onclick="shareApp()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold items-center gap-1.5 shadow transition">
                     <i class="fa-solid fa-share-nodes"></i> مشاركة الكتالوج
-                </button>
-                <!-- زر الخروج (يظهر للأدمن فقط) -->
-                <button id="logout-btn" onclick="logoutAdmin()" class="hidden bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-xl text-xs font-bold items-center gap-1 shadow transition" title="قفل التطبيق">
-                    <i class="fa-solid fa-right-from-bracket"></i> خروج
                 </button>
                 <!-- زر العودة للأقسام -->
                 <button id="back-btn" onclick="goHome()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
@@ -190,14 +189,10 @@
         const isClientView = urlParams.get('view') === 'client';
         const isAuth = localStorage.getItem("najar_authenticated") === "true";
 
-        // إظهار أزرار الأدمن (مشاركة الكتالوج + خروج) للأدمن فقط
         function enableAdminHeader() {
             const shareBtn = document.getElementById('share-btn');
-            const logoutBtn = document.getElementById('logout-btn');
             shareBtn.classList.remove('hidden');
             shareBtn.classList.add('flex');
-            logoutBtn.classList.remove('hidden');
-            logoutBtn.classList.add('flex');
         }
 
         if (isClientView) {
@@ -372,8 +367,7 @@
 
                         const card = document.createElement('div');
                         card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
-                        
-                        const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
+                     const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
 
                         card.innerHTML = `
                             <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer relative">

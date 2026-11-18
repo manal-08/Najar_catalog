@@ -76,12 +76,21 @@
         </section>
 
         <section id="view-products" class="hidden">
-            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-amber-100">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-amber-100 gap-4">
                 <div>
                     <span class="text-xs text-amber-700 font-bold">قسم</span>
                     <h2 id="current-category-title" class="text-2xl font-extrabold text-amber-950"></h2>
                 </div>
-                <button id="add-prod-btn" onclick="openModal('modal-add-product')" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition">
+                
+                <!-- شريط البحث عن رقم الموديل -->
+                <div class="w-full sm:w-64 relative">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="search-input" oninput="filterProducts()" placeholder="ابحث برقم الموديل..." class="w-full border border-gray-300 rounded-xl py-2 pr-9 pl-3 text-sm focus:outline-none focus:border-amber-800 bg-gray-50">
+                </div>
+
+                <button id="add-prod-btn" onclick="openAddProductModal()" class="hidden bg-amber-800 hover:bg-amber-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md items-center gap-2 transition whitespace-nowrap">
                     <i class="fa-solid fa-camera"></i> إضافة تصميم
                 </button>
             </div>
@@ -103,19 +112,18 @@
         </div>
     </div>
 
-    <!-- نافذة إضافة تصميم -->
+    <!-- نافذة إضافة أو تعديل تصميم -->
     <div id="modal-add-product" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl my-8">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-extrabold text-amber-950">إضافة تصميم جديد</h3>
+                <h3 id="product-modal-title" class="text-lg font-extrabold text-amber-950">إضافة تصميم جديد</h3>
                 <button onclick="closeModal('modal-add-product')" class="text-gray-400 hover:text-gray-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
+            <input type="hidden" id="edit-product-id" value="">
+
             <label class="block text-sm font-bold mb-1 text-gray-700">صور التصميم (صورة أو أكثر) *</label>
             <input type="file" id="product-images" accept="image/*" multiple class="w-full border border-dashed border-amber-600 bg-amber-50/50 rounded-xl p-3 mb-3 text-sm">
-
-            <label class="block text-sm font-bold mb-1 text-gray-700">اسم أو رقم الموديل *</label>
-            <input type="text" id="product-title" placeholder="مثال: باب خشب موديل 1" class="w-full border border-gray-300 rounded-xl p-3 mb-3 text-sm focus:outline-none focus:border-amber-800">
 
             <label class="block text-sm font-bold mb-1 text-gray-700">الثمن بالدرهم (اختياري)</label>
             <input type="text" id="product-price" placeholder="مثال: 2500 درهم" class="w-full border border-gray-300 rounded-xl p-3 mb-3 text-sm focus:outline-none focus:border-amber-800">
@@ -124,12 +132,12 @@
             <textarea id="product-desc" rows="2" placeholder="نوع الخشب، المقاسات..." class="w-full border border-gray-300 rounded-xl p-3 mb-4 text-sm focus:outline-none focus:border-amber-800"></textarea>
 
             <button id="save-prod-btn" onclick="saveProduct()" class="w-full wood-gradient text-white font-bold py-3 rounded-xl shadow hover:opacity-95 transition">
-                ضغط الصور وحفظ التصميم
+                حفظ التصميم
             </button>
         </div>
     </div>
 
-    <!-- نافذة عرض التفاصيل والصور للزائر + واتساب -->
+    <!-- نافذة عرض التفاصيل والصور -->
     <div id="modal-product-details" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-3 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl my-6">
             <div class="flex justify-between items-center p-4 border-b">
@@ -147,9 +155,7 @@
                 </div>
                 <p id="detail-desc" class="text-gray-600 text-sm mb-5"></p>
                 
-                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
-                    <i class="fa-brands fa-whatsapp text-2xl"></i> استفسر عن هذا التصميم عبر واتساب
-                </a>
+                <div id="whatsapp-container"></div>
             </div>
         </div>
     </div>
@@ -161,10 +167,10 @@
     <!-- ربط Firebase والمنطق البرمجي -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const WHATSAPP_NUMBER = "212600000000"; 
-        const ADMIN_SECRET_PIN = "2026"; 
+        const WHATSAPP_NUMBER = "+212626322673"; 
+        const ADMIN_SECRET_PIN = "0701"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDoez83NcsLSFH9ZwHhX3BlySch2GiKMhI",
@@ -181,6 +187,9 @@
 
         let currentCategoryId = null;
         let currentCategoryName = "";
+        let productsCount = 0; 
+        let allProductsCache = []; // تخزين مؤقت للمنتجات لتفعيل البحث السريع
+        let currentIsAdmin = false;
 
         const urlParams = new URLSearchParams(window.location.search);
         const isClientView = urlParams.get('view') === 'client';
@@ -230,6 +239,15 @@
         window.closeModal = (id) => {
             document.getElementById(id).classList.add('hidden');
             document.getElementById(id).classList.remove('flex');
+        };
+
+        window.openAddProductModal = () => {
+            document.getElementById('edit-product-id').value = '';
+            document.getElementById('product-modal-title').innerText = 'إضافة تصميم جديد (موديل رقم ' + (productsCount + 1) + ')';
+            document.getElementById('product-images').value = '';
+            document.getElementById('product-price').value = '';
+            document.getElementById('product-desc').value = '';
+            openModal('modal-add-product');
         };
 
         window.shareApp = async () => {
@@ -333,6 +351,8 @@
         window.openCategory = async (catId, catName, isAdmin) => {
             currentCategoryId = catId;
             currentCategoryName = catName;
+            currentIsAdmin = isAdmin;
+            document.getElementById('search-input').value = '';
 
             document.getElementById('view-categories').classList.add('hidden');
             document.getElementById('loader').classList.remove('hidden');
@@ -346,47 +366,22 @@
                 document.getElementById('add-prod-btn').classList.add('hidden');
             }
 
-            const prodListEl = document.getElementById('products-list');
-            prodListEl.innerHTML = '';
-
             try {
                 const q = query(collection(db, "products"), where("categoryId", "==", catId));
                 const snapshot = await getDocs(q);
+                productsCount = snapshot.size;
 
-                if (snapshot.empty) {
-                    prodListEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">لا توجد تصاميم في هذا القسم حالياً.</p>`;
-                } else {
-                    snapshot.forEach((docSnap) => {
-                        const prod = docSnap.data();
-                        const prodId = docSnap.id;
-                        const mainImg = (prod.images && prod.images.length > 0) ? prod.images[0] : '';
-                        const imgCount = prod.images ? prod.images.length : 1;
+                allProductsCache = [];
+                let index = 1;
+                snapshot.forEach((docSnap) => {
+                    const prod = docSnap.data();
+                       prod.id = docSnap.id;
+                    prod.displayTitle = prod.title || (`موديل رقم ${index}`);
+                    allProductsCache.push(prod);
+                    index++;
+                });
 
-                        const card = document.createElement('div');
-                        card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
-                        
-                        const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
-card.innerHTML = `
-                            <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer relative">
-                                <img src="${mainImg}" class="h-56 w-full object-cover">
-                                ${imgCount > 1 ? `<span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2.5 py-1 rounded-lg"><i class="fa-regular fa-images ml-1"></i> +${imgCount - 1} صور</span>` : ''}
-                            </div>
-                            <div class="p-4 flex-1 flex flex-col justify-between">
-                                <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer">
-                                    <h3 class="font-extrabold text-lg text-gray-900">${prod.title}</h3>
-                                    <p class="text-amber-900 font-bold text-base mt-1">${prod.price ? prod.price : 'الثمن حسب المقاس'}</p>
-                                </div>
-                                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
-                                    <button onclick="showProductDetails('${prodDataEncoded}')" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-2 rounded-xl text-sm transition">
-                                        التفاصيل والصور
-                                    </button>
-                                    ${isAdmin ? `<button onclick="deleteProduct('${prodId}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl text-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>` : ''}
-                                </div>
-                            </div>
-                        `;
-                        prodListEl.appendChild(card);
-                    });
-                }
+                renderProducts(allProductsCache, isAdmin);
             } catch (e) {
                 console.error(e);
             }
@@ -395,7 +390,57 @@ card.innerHTML = `
             document.getElementById('view-products').classList.remove('hidden');
         };
 
-        // دالة لضغط الصورة بشكل قوي لتجنب تجاوز حد قاعدة البيانات (1 ميجابايت)
+        // دالة عرض المنتجات في الشاشة مع تطبيق البحث الفوري
+        window.renderProducts = (products, isAdmin) => {
+            const prodListEl = document.getElementById('products-list');
+            prodListEl.innerHTML = '';
+
+            if (products.length === 0) {
+                prodListEl.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">لا توجد تصاميم مطابقة للبحث.</p>`;
+                return;
+            }
+
+            products.forEach((prod) => {
+                const mainImg = (prod.images && prod.images.length > 0) ? prod.images[0] : '';
+                const imgCount = prod.images ? prod.images.length : 1;
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
+                
+                const prodDataEncoded = encodeURIComponent(JSON.stringify({...prod, title: prod.displayTitle}));
+
+                card.innerHTML = `
+                    <div onclick="showProductDetails('${prodDataEncoded}', ${isAdmin})" class="cursor-pointer relative">
+                        <img src="${mainImg}" class="h-56 w-full object-cover">
+                        ${imgCount > 1 ? `<span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2.5 py-1 rounded-lg"><i class="fa-regular fa-images ml-1"></i> +${imgCount - 1} صور</span>` : ''}
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <div onclick="showProductDetails('${prodDataEncoded}', ${isAdmin})" class="cursor-pointer">
+                            <h3 class="font-extrabold text-lg text-gray-900">${prod.displayTitle}</h3>
+                            <p class="text-amber-900 font-bold text-base mt-1">${prod.price ? prod.price : 'الثمن حسب المقاس'}</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                            <button onclick="showProductDetails('${prodDataEncoded}', ${isAdmin})" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-2 rounded-xl text-sm transition">
+                                التفاصيل والصور
+                            </button>
+                            ${isAdmin ? `
+                                <button onclick="editProduct('${prod.id}', '${prod.price || ''}', '${prod.description || ''}')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-xl text-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteProduct('${prod.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-xl text-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                prodListEl.appendChild(card);
+            });
+        };
+
+        // دالة الفلترة الفورية عند الكتابة في شريط البحث
+        window.filterProducts = () => {
+            const queryText = document.getElementById('search-input').value.trim().toLowerCase();
+            const filtered = allProductsCache.filter(p => p.displayTitle.toLowerCase().includes(queryText));
+            renderProducts(filtered, currentIsAdmin);
+        };
+
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -405,13 +450,13 @@ card.innerHTML = `
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 600; // تقليص العرض لضمان خفة الحجم
+                        const MAX_WIDTH = 600;
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
                         canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.5)); // جودة 50% لتخفيف حجم البيانات تماماً
+                        resolve(canvas.toDataURL('image/jpeg', 0.5));
                     };
                 };
             });
@@ -419,49 +464,66 @@ card.innerHTML = `
 
         window.saveProduct = async () => {
             const filesInput = document.getElementById('product-images');
-            const title = document.getElementById('product-title').value.trim();
             const price = document.getElementById('product-price').value.trim();
             const desc = document.getElementById('product-desc').value.trim();
+            const editId = document.getElementById('edit-product-id').value;
 
-            if (filesInput.files.length === 0 || !title) {
-                return alert("يرجى اختيار صورة واحدة على الأقل وكتابة اسم التصميم!");
+            if (filesInput.files.length === 0 && !editId) {
+                return alert("يرجى اختيار صورة واحدة على الأقل للتصميم!");
             }
 
             const btn = document.getElementById('save-prod-btn');
             btn.disabled = true;
-            btn.innerText = "جاري ضغط الصور وحفظها...";
+            btn.innerText = "جاري الحفظ والمعالجة...";
 
             try {
-                const imageUrls = [];
-                for (let i = 0; i < filesInput.files.length; i++) {
-                    const compressedBase64 = await compressImage(filesInput.files[i]);
-                    imageUrls.push(compressedBase64);
+                let imageUrls = [];
+                if (filesInput.files.length > 0) {
+                    for (let i = 0; i < filesInput.files.length; i++) {
+                        const compressedBase64 = await compressImage(filesInput.files[i]);
+                        imageUrls.push(compressedBase64);
+                    }
                 }
 
-                await addDoc(collection(db, "products"), {
-                    categoryId: currentCategoryId,
-                    categoryName: currentCategoryName,
-                    title: title,
-                    price: price,
-                    description: desc,
-                    images: imageUrls,
-                    createdAt: serverTimestamp()
-                });
+                if (editId) {
+                    const updateData = { price: price, description: desc };
+                    if (imageUrls.length > 0) updateData.images = imageUrls;
+                    await updateDoc(doc(db, "products", editId), updateData);
+                } else {
+                    const autoTitle = `موديل رقم ${productsCount + 1}`;
+                    await addDoc(collection(db, "products"), {
+                        categoryId: currentCategoryId,
+                        categoryName: currentCategoryName,
+                        title: autoTitle,
+                        price: price,
+                        description: desc,
+                        images: imageUrls,
+                        createdAt: serverTimestamp()
+                    });
+                }
 
                 document.getElementById('product-images').value = '';
-                document.getElementById('product-title').value, '';
-                document.getElementById('product-title').value = '';
                 document.getElementById('product-price').value = '';
                 document.getElementById('product-desc').value = '';
+                document.getElementById('edit-product-id').value = '';
 
                 closeModal('modal-add-product');
                 openCategory(currentCategoryId, currentCategoryName, true);
             } catch (e) {
-                alert("حدث خطأ أثناء الحفظ (حجم الصور كبير جداً): " + e.message);
+                alert("حدث خطأ أثناء الحفظ: " + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerText = "ضغط الصور وحفظ التصميم";
+                btn.innerText = "حفظ التصميم";
             }
+        };
+
+        window.editProduct = (id, price, desc) => {
+            document.getElementById('edit-product-id').value = id;
+            document.getElementById('product-modal-title').innerText = 'تعديل التصميم';
+            document.getElementById('product-price').value = price === 'undefined' ? '' : price;
+            document.getElementById('product-desc').value = desc === 'undefined' ? '' : desc;
+            document.getElementById('product-images').value = '';
+            openModal('modal-add-product');
         };
 
         window.deleteProduct = async (prodId) => {
@@ -470,7 +532,7 @@ card.innerHTML = `
             openCategory(currentCategoryId, currentCategoryName, true);
         };
 
-        window.showProductDetails = (encodedData) => {
+        window.showProductDetails = (encodedData, isAdmin) => {
             const prod = JSON.parse(decodeURIComponent(encodedData));
             document.getElementById('detail-title').innerText = prod.title;
             document.getElementById('detail-price').innerText = prod.price ? prod.price : 'الثمن: حسب المقاس والطلب';
@@ -482,10 +544,13 @@ card.innerHTML = `
                 gallery.innerHTML += `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="w-full rounded-xl shadow-sm object-cover hover:opacity-95"></a>`;
             });
 
-            // رسالة واتساب خفيفة وواضحة لشقيقك بدون روابط صور طويلة لضمان الحفظ السريع
-            const message = `السلام عليكم، أعجبني هذا التصميم في الكتالوج وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}\n- الثمن: ${prod.price || 'حسب المقاس'}`;
-            
-            document.getElementById('whatsapp-btn').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+            const whatsappContainer = document.getElementById('whatsapp-container');
+            if (isAdmin) {
+                whatsappContainer.innerHTML = `<p class="text-center text-xs text-gray-400 py-2">لوحة المعاينة الخاصة بالأدمن (لا تظهر للزبائن)</p>`;
+            } else {
+                const message = `السلام عليكم، أعجبني هذا التصميم في الكتالوج وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}\n- الثمن: ${prod.price || 'حسب المقاس'}`;
+                whatsappContainer.innerHTML = `<a href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition"><i class="fa-brands fa-whatsapp text-2xl"></i> استفسر عن هذا التصميم عبر واتساب</a>`;
+            }
 
             openModal('modal-product-details');
         };
@@ -494,4 +559,3 @@ card.innerHTML = `
     </script>
 </body>
 </html>
-                    

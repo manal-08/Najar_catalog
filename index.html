@@ -14,7 +14,7 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- شاشة إدخال الكود السري (تظهر لشقيقك فقط مع زر الخروج فيها) -->
+    <!-- شاشة إدخال الكود السري -->
     <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20 relative">
             <h2 class="text-2xl font-extrabold text-amber-950 mb-1">StyleNajar</h2>
@@ -26,7 +26,6 @@
                 دخول للورشة
             </button>
             
-            <!-- زر الخروج خاص بشقيقك في الشاشة الأولى فقط -->
             <button onclick="logoutAdmin()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-right-from-bracket"></i> قفل التطبيق وخروج
             </button>
@@ -49,11 +48,9 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- زر المشاركة (يظهر للأدمن فقط في الهيدر) -->
                 <button id="share-btn" onclick="shareApp()" class="hidden bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold items-center gap-1.5 shadow transition">
                     <i class="fa-solid fa-share-nodes"></i> مشاركة الكتالوج
                 </button>
-                <!-- زر العودة للأقسام -->
                 <button id="back-btn" onclick="goHome()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
                     <i class="fa-solid fa-arrow-right"></i> الأقسام
                 </button>
@@ -166,8 +163,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const WHATSAPP_NUMBER = "+212626322673"; // رقم واتساب شقيقك (اكتبي رقمه الصحيح هنا متبوعاً برمز الدولة بدون +، مثلاً: 2126xxxxxxxx)
-        const ADMIN_SECRET_PIN = "0701"; 
+        const WHATSAPP_NUMBER = "212600000000"; 
+        const ADMIN_SECRET_PIN = "2026"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDoez83NcsLSFH9ZwHhX3BlySch2GiKMhI",
@@ -369,8 +366,7 @@
                         card.className = "bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden flex flex-col transition relative";
                         
                         const prodDataEncoded = encodeURIComponent(JSON.stringify(prod));
-
-                        card.innerHTML = `
+card.innerHTML = `
                             <div onclick="showProductDetails('${prodDataEncoded}')" class="cursor-pointer relative">
                                 <img src="${mainImg}" class="h-56 w-full object-cover">
                                 ${imgCount > 1 ? `<span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2.5 py-1 rounded-lg"><i class="fa-regular fa-images ml-1"></i> +${imgCount - 1} صور</span>` : ''}
@@ -399,6 +395,7 @@
             document.getElementById('view-products').classList.remove('hidden');
         };
 
+        // دالة لضغط الصورة بشكل قوي لتجنب تجاوز حد قاعدة البيانات (1 ميجابايت)
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -408,13 +405,13 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800;
+                        const MAX_WIDTH = 600; // تقليص العرض لضمان خفة الحجم
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
                         canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                        resolve(canvas.toDataURL('image/jpeg', 0.5)); // جودة 50% لتخفيف حجم البيانات تماماً
                     };
                 };
             });
@@ -452,6 +449,7 @@
                 });
 
                 document.getElementById('product-images').value = '';
+                document.getElementById('product-title').value, '';
                 document.getElementById('product-title').value = '';
                 document.getElementById('product-price').value = '';
                 document.getElementById('product-desc').value = '';
@@ -459,7 +457,7 @@
                 closeModal('modal-add-product');
                 openCategory(currentCategoryId, currentCategoryName, true);
             } catch (e) {
-                alert("حدث خطأ أثناء الحفظ: " + e.message);
+                alert("حدث خطأ أثناء الحفظ (حجم الصور كبير جداً): " + e.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "ضغط الصور وحفظ التصميم";
@@ -484,9 +482,8 @@
                 gallery.innerHTML += `<a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="w-full rounded-xl shadow-sm object-cover hover:opacity-95"></a>`;
             });
 
-            // أخذ الصورة الأولى للموديل وإرسالها في رسالة الواتساب لشقيقك
-            const firstImg = prod.images && prod.images[0] ? prod.images[0] : '';
-            const message = `السلام عليكم، أعجبني هذا التصميم وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}\n- الثمن: ${prod.price || 'حسب المقاس'}\n- رابط صورة الموديل:\n${firstImg}`;
+            // رسالة واتساب خفيفة وواضحة لشقيقك بدون روابط صور طويلة لضمان الحفظ السريع
+            const message = `السلام عليكم، أعجبني هذا التصميم في الكتالوج وأود الاستفسار عنه:\n- القسم: ${prod.categoryName}\n- الموديل: ${prod.title}\n- الثمن: ${prod.price || 'حسب المقاس'}`;
             
             document.getElementById('whatsapp-btn').href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
@@ -497,3 +494,4 @@
     </script>
 </body>
 </html>
+                    

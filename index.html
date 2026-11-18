@@ -14,7 +14,7 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- شاشة إدخال الكود السري -->
+    <!-- شاشة إدخال الكود السري لشقيقك -->
     <div id="auth-screen" class="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center border-4 border-amber-800/20">
             <div class="w-16 h-16 bg-amber-100 text-amber-900 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow">
@@ -148,7 +148,7 @@
                 </div>
                 <p id="detail-desc" class="text-gray-600 text-sm mb-5"></p>
                 
-                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
+                <a id="whatsapp-btn" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition">
                     <i class="fa-brands fa-whatsapp text-2xl"></i> استفسر عن هذا التصميم عبر واتساب
                 </a>
             </div>
@@ -164,8 +164,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const WHATSAPP_NUMBER = "+212626322673"; 
-        const ADMIN_SECRET_PIN = "0107"; 
+        const WHATSAPP_NUMBER = "212600000000"; 
+        const ADMIN_SECRET_PIN = "2026"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDoez83NcsLSFH9ZwHhX3BlySch2GiKMhI",
@@ -211,27 +211,26 @@
         window.openModal = (id) => document.getElementById(id).classList.add('flex') & document.getElementById(id).classList.remove('hidden');
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden') & document.getElementById(id).classList.remove('flex');
 
-        // دالة مشاركة آمنة لا تسبب انهيار الصفحة
+        // دالة مشاركة الرابط النظيف (بدون ظهور شاشة الكود السري للزوار، وبدون أزرار الإدارة)
         window.shareApp = async () => {
+            // سنقوم بنسخ الرابط الأساسي النظيف
             const cleanUrl = window.location.origin + window.location.pathname;
             
-            // النسخ المباشر للحافظة لضمان عدم حدوث انهيار في بعض المتصفحات المحمولة
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(cleanUrl);
-                    alert("تم نسخ رابط الكتالوج بنجاح! يمكنك الآن لصقه وإرساله للزبائن عبر واتساب.");
+                    alert("تم نسخ رابط الزوار بنجاح! الرابط جاهز للإرسال للزبائن.");
                 } else {
-                    // طريقة بديلة
                     const textArea = document.createElement("textarea");
                     textArea.value = cleanUrl;
                     document.body.appendChild(textArea);
                     textArea.select();
                     document.execCommand("copy");
                     document.body.removeChild(textArea);
-                    alert("تم نسخ رابط الكتالوج بنجاح!");
+                    alert("تم نسخ رابط الزوار بنجاح!");
                 }
             } catch (err) {
-                alert("رابط الكتالوج هو: " + cleanUrl);
+                alert("رابط الزوار هو: " + cleanUrl);
             }
         };
 
@@ -264,6 +263,7 @@
                                 </div>
                                 <h3 class="font-extrabold text-lg text-gray-900">${cat.name}</h3>
                             </div>
+                            <!-- زر الحذف يظهر لشقيقك فقط لأنه مسجل دخوله -->
                             <button onclick="deleteCategory('${catId}')" class="absolute top-2 left-2 text-red-400 hover:text-red-600 p-1.5 text-xs" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>
                         `;
                         listEl.appendChild(card);
@@ -348,7 +348,7 @@
                                     <h3 class="font-extrabold text-lg text-gray-900">${prod.title}</h3>
                                     <p class="text-amber-900 font-bold text-base mt-1">${prod.price ? prod.price : 'الثمن حسب المقاس'}</p>
                                 </div>
-                                 <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                                     <button onclick="showProductDetails('${prodDataEncoded}')" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-2 rounded-xl text-sm transition">
                                         التفاصيل والصور
                                     </button>
@@ -442,6 +442,7 @@
 
         window.showProductDetails = (encodedData) => {
             const prod = JSON.parse(decodeURIComponent(encodedData));
+            document.getElementById('detail-title').innerText.innerText = prod.title;
             document.getElementById('detail-title').innerText = prod.title;
             document.getElementById('detail-price').innerText = prod.price ? prod.price : 'الثمن: حسب المقاس والطلب';
             document.getElementById('detail-desc').innerText = prod.description || '';
